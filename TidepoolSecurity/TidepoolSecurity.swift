@@ -19,7 +19,7 @@ public protocol SecurePersistentAttestationKeyID {
 
 public final class TidepoolSecurity: Security {
     
-    public static let identifier = "TidepoolSecurity"
+    public static let pluginIdentifier = "TidepoolSecurity"
 
     private let log = OSLog(category: "TidepoolSecurity")
     
@@ -48,16 +48,16 @@ public final class TidepoolSecurity: Security {
         self.securePersistentAttestationKeyID = securePersistentAttestationKeyID
     }
     
-    public func initializationComplete(for services: [LoopKit.Service]) {
-        if let tidepoolService = services.first(where: { $0 as? TidepoolService != nil }) as? TidepoolService {
+    public func initializationComplete(for plugins: [Pluggable]) {
+        if let tidepoolService = plugins.first(where: { $0 as? TidepoolService != nil }) as? TidepoolService {
             self.tidepoolService = tidepoolService
         }
     }
     
-    public func verifyDevice(completion: @escaping (Result<Bool,SecurityError>) -> Void) {
+    public func verifyDevice(completion: @escaping (Result<Bool, Error>) -> Void) {
         guard let tidepoolService = tidepoolService else {
             log.info("%{public}@ TidepoolService is missing", #function)
-            completion(.failure(.unexpectedState))
+            completion(.failure(SecurityError.unexpectedState))
             return
         }
 
@@ -85,7 +85,7 @@ public final class TidepoolSecurity: Security {
             Task { @MainActor in
                 guard error == nil, let token = token else {
                     self.log.info("%{public}@ Device token generation failed [error=%{public}@]", #function, error.debugDescription)
-                    completion(.failure(.unexpectedError))
+                    completion(.failure(SecurityError.unexpectedError))
                     return
                 }
 
@@ -94,7 +94,7 @@ public final class TidepoolSecurity: Security {
                     completion(.success(deviceValid))
                 } catch {
                     // Should this use one of the following networkFailure, authenticationFailure, resourceNotFound
-                    completion(.failure(.unexpectedError))
+                    completion(.failure(SecurityError.unexpectedError))
                 }
             }
         }
@@ -108,10 +108,10 @@ public final class TidepoolSecurity: Security {
         #endif
     }
     
-    public func verifyApp(completion: @escaping (Result<Bool,SecurityError>) -> Void) {
+    public func verifyApp(completion: @escaping (Result<Bool, Error>) -> Void) {
         guard let tidepoolService = tidepoolService else {
             log.info("%{public}@ TidepoolService is missing", #function)
-            completion(.failure(.unexpectedState))
+            completion(.failure(SecurityError.unexpectedState))
             return
         }
 
@@ -153,7 +153,7 @@ public final class TidepoolSecurity: Security {
                 self.log.info("%{public}@ App attestation verification failed [error=%{public}@]", #function, String(describing: error.localizedDescription))
                 self.attestationKeyID = nil
                 // Should this use one of the following networkFailure, authenticationFailure, resourceNotFound
-                completion(.failure(.unexpectedError))
+                completion(.failure(SecurityError.unexpectedError))
             }
         }
     }

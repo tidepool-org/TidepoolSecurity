@@ -16,10 +16,6 @@ class TidepoolSecurityPlugin: NSObject, SecurityPlugin {
 
     public var security: Security = TidepoolSecurity()
     
-    public var securityType: Security.Type? {
-        return TidepoolSecurity.self
-    }
-
     override init() {
         super.init()
         log.default("Instantiated")
