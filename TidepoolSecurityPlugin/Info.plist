@@ -22,7 +22,7 @@
 	<string>Copyright © 2023 Tidepool. All rights reserved.</string>
 	<key>NSPrincipalClass</key>
 	<string>TidepoolSecurityPlugin</string>
-	<key>com.loopkit.Loop.SecurityIdentifier</key>
+	<key>com.loopkit.Loop.StatefulPluginIdentifier</key>
 	<string>TidepoolSecurity</string>
 </dict>
 </plist>

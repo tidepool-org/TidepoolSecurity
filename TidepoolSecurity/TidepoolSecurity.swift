@@ -17,7 +17,8 @@ public protocol SecurePersistentAttestationKeyID {
     func getAttestationKeyID(for keyService: String?) -> String?
 }
 
-public final class TidepoolSecurity: Security {
+public final class TidepoolSecurity: StatefulPluggable {
+    public var isOnboarded: Bool { true }
     
     public static let pluginIdentifier = "TidepoolSecurity"
 
@@ -25,36 +26,37 @@ public final class TidepoolSecurity: Security {
     
     private var tidepoolService: TidepoolService?
     
+    public weak var stateDelegate: StatefulPluggableDelegate?
+    
     let appAttestService = DCAppAttestService.shared
     
-    private var attestationKeyIDServiceIdentifier: String = "org.tidepool.TidepoolSecurity.Attestation.KeyID"
-    
-    private var securePersistentAttestationKeyID: () -> SecurePersistentAttestationKeyID
-    
     private(set) var attestationKeyID: String? {
-        get {
-            return securePersistentAttestationKeyID().getAttestationKeyID(for: attestationKeyIDServiceIdentifier)
+        didSet {
+            stateDelegate?.pluginDidUpdateState(self)
         }
-        set {
-            guard let attestationKeyID = newValue else {
-                return
-            }
-
-            try? securePersistentAttestationKeyID().setAttestationKeyID(attestationKeyID, for: attestationKeyIDServiceIdentifier)
-        }
-    }
-
-    public init(securePersistentAttestationKeyID: @escaping () -> SecurePersistentAttestationKeyID = { KeychainManager() }) {
-        self.securePersistentAttestationKeyID = securePersistentAttestationKeyID
     }
     
-    public func initializationComplete(for plugins: [Pluggable]) {
-        if let tidepoolService = plugins.first(where: { $0 as? TidepoolService != nil }) as? TidepoolService {
+    public init() {
+        attestationKeyID = nil
+    }
+    
+    public init?(rawState: RawStateValue = [:]) {
+        self.attestationKeyID = rawState["attestationKeyID"] as? String
+    }
+    
+    public var rawState: RawStateValue {
+        var rawState: RawStateValue = [:]
+        rawState["attestationKeyID"] = attestationKeyID
+        return rawState
+    }
+    
+    public func initializationComplete(for pluggables: [Pluggable]) {
+        if let tidepoolService = pluggables.first(where: { $0 as? TidepoolService != nil }) as? TidepoolService {
             self.tidepoolService = tidepoolService
         }
     }
     
-    public func verifyDevice(completion: @escaping (Result<Bool, Error>) -> Void) {
+    public func verifyiOSDevice(completion: @escaping (Result<Bool, Error>) -> Void) {
         guard let tidepoolService = tidepoolService else {
             log.info("%{public}@ TidepoolService is missing", #function)
             completion(.failure(SecurityError.unexpectedState))
@@ -82,7 +84,7 @@ public final class TidepoolSecurity: Security {
         }
 
         DCDevice.current.generateToken { token, error in
-            Task { @MainActor in
+            Task {
                 guard error == nil, let token = token else {
                     self.log.info("%{public}@ Device token generation failed [error=%{public}@]", #function, error.debugDescription)
                     completion(.failure(SecurityError.unexpectedError))
@@ -107,37 +109,27 @@ public final class TidepoolSecurity: Security {
         return true
         #endif
     }
-    
-    public func verifyApp(completion: @escaping (Result<Bool, Error>) -> Void) {
+    public func verifyApp() async throws -> Bool {
         guard let tidepoolService = tidepoolService else {
             log.info("%{public}@ TidepoolService is missing", #function)
-            completion(.failure(SecurityError.unexpectedState))
-            return
+            throw SecurityError.unexpectedState
         }
 
         // If the app does not require verification (i.e. simulator), mark as valid
         guard appRequiresVerification else {
             log.info("%{public}@ App verification not required", #function)
-            completion(.success(true))
-            return
+            return true
         }
 
         // if the device does not support DCAppAttestService API, mark as invalid
         let appAttestService = DCAppAttestService.shared
         guard appAttestService.isSupported else {
             log.info("%{public}@ DCAppAttestService API not supported, app key ID cannot be generated, validation failure", #function)
-            completion(.success(false))
-            return
+            return false
         }
 
-        Task { @MainActor in
             do {
-                let attestationKeyID: String
-                if self.attestationKeyID != nil {
-                    attestationKeyID = self.attestationKeyID!
-                } else {
-                    attestationKeyID = try await appAttestService.generateKey()
-                }
+                let attestationKeyID = try await appAttestService.generateKey()
 
                 let challenge = try await tidepoolService.tapi.getAttestationChallenge(keyID: attestationKeyID)
 
@@ -148,14 +140,13 @@ public final class TidepoolSecurity: Security {
                 let appValid = try await tidepoolService.tapi.verifyAttestation(keyID: attestationKeyID, challenge: challenge, attestation: attestation.base64EncodedString())
 
                 self.attestationKeyID = attestationKeyID
-                completion(.success(appValid))
-            } catch {
-                self.log.info("%{public}@ App attestation verification failed [error=%{public}@]", #function, String(describing: error.localizedDescription))
+                return appValid
+            } catch let error {
+                self.log.info("%{public}@ App attestation verification failed [error=%{public}@]", #function, String(describing: error.localizedDescription.debugDescription))
                 self.attestationKeyID = nil
                 // Should this use one of the following networkFailure, authenticationFailure, resourceNotFound
-                completion(.failure(SecurityError.unexpectedError))
+                throw error
             }
-        }
     }
 
     private var appRequiresVerification: Bool {
@@ -168,20 +159,5 @@ public final class TidepoolSecurity: Security {
     
     public var appAttestationSupported: Bool {
         appAttestService.isSupported
-    }
-}
-
-extension KeychainManager: SecurePersistentAttestationKeyID {
-    public func setAttestationKeyID(_ password: String?, for keyService: String?) throws {
-        if let keyService = keyService {
-            try replaceGenericPassword(password, forService: keyService)
-        }
-    }
-    
-    public func getAttestationKeyID(for keyService: String?) -> String? {
-        guard let keyService = keyService else {
-            return nil
-        }
-        return try? getGenericPasswordForService(keyService)
     }
 }

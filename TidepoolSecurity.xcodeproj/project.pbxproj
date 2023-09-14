@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B470F5822AB1B36A00049695 /* Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = B470F5812AB1B36A00049695 /* Data.swift */; };
 		B47D724A2AA78C0800A4F783 /* TidepoolSecurity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B47D72492AA78C0800A4F783 /* TidepoolSecurity.swift */; };
 		B47D724D2AA78D3200A4F783 /* OSLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B47D724C2AA78D3200A4F783 /* OSLog.swift */; };
 		B47D724E2AA78D3200A4F783 /* OSLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B47D724C2AA78D3200A4F783 /* OSLog.swift */; };
@@ -56,6 +57,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		B470F5812AB1B36A00049695 /* Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Data.swift; sourceTree = "<group>"; };
 		B47D72492AA78C0800A4F783 /* TidepoolSecurity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TidepoolSecurity.swift; sourceTree = "<group>"; };
 		B47D724C2AA78D3200A4F783 /* OSLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSLog.swift; sourceTree = "<group>"; };
 		B47D724F2AA7939800A4F783 /* SecurityError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityError.swift; sourceTree = "<group>"; };
@@ -107,6 +109,7 @@
 			isa = PBXGroup;
 			children = (
 				B47D724C2AA78D3200A4F783 /* OSLog.swift */,
+				B470F5812AB1B36A00049695 /* Data.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -321,6 +324,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B47D724D2AA78D3200A4F783 /* OSLog.swift in Sources */,
+				B470F5822AB1B36A00049695 /* Data.swift in Sources */,
 				B47D72562AA7B28600A4F783 /* JailbrokenDeviceDetector.swift in Sources */,
 				B47D72502AA7939800A4F783 /* SecurityError.swift in Sources */,
 				B47D72522AA793C000A4F783 /* LocalizedString.swift in Sources */,
@@ -448,7 +452,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = org.tidepool.TidepoolSecurity;
-                PRODUCT_BUNDLE_PACKAGE_TYPE = FMWK;
+				PRODUCT_BUNDLE_PACKAGE_TYPE = FMWK;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;

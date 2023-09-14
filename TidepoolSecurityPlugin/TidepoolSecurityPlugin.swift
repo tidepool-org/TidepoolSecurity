@@ -10,11 +10,11 @@ import os.log
 import LoopKit
 import TidepoolSecurity
 
-class TidepoolSecurityPlugin: NSObject, SecurityPlugin {
+class TidepoolSecurityPlugin: NSObject, StatefulPlugin {
     
     private let log = OSLog(category: "TidepoolSecurityPlugin")
 
-    public var security: Security = TidepoolSecurity()
+    public var pluginType: StatefulPluggable.Type? { TidepoolSecurity.self }
     
     override init() {
         super.init()
