@@ -11,6 +11,7 @@ import CryptoKit
 import os.log
 import LoopKit
 import TidepoolServiceKit
+import TidepoolKit
 
 public protocol SecurePersistentAttestationKeyID {
     func setAttestationKeyID(_ password: String?, for keyService: String?) throws
@@ -159,5 +160,38 @@ public final class TidepoolSecurity: StatefulPluggable {
     
     public var appAttestationSupported: Bool {
         appAttestService.isSupported
+    }
+    
+    public func sendAppAssertion(partnerIdentifier: String, partnerData: [String: String]) async throws -> Data {
+        guard let tidepoolService = tidepoolService else {
+            log.info("%{public}@ TidepoolService is missing", #function)
+            throw SecurityError.unexpectedState
+        }
+
+        // if the device does not support DCAppAttestService API
+        let appAttestService = DCAppAttestService.shared
+        guard appAttestService.isSupported else {
+            log.info("%{public}@ DCAppAttestService API not supported, app key ID cannot be generated, validation failure", #function)
+            throw SecurityError.unexpectedState
+        }
+        
+        do {
+            if self.attestationKeyID == nil {
+                guard try await verifyApp() else {
+                    fatalError("could not create attestation key ID")
+                }
+            }
+            
+            let attestationKeyID = self.attestationKeyID!
+            let challenge = try await tidepoolService.tapi.getAssertionChallenge(keyID: attestationKeyID)
+            let clientData = TClientData(challenge: challenge, partner: partnerIdentifier, partnerData: partnerData)
+            let clientDataHash = Data(SHA256.hash(data: try JSONEncoder.tidepool.encode(clientData) ))
+            let assertion = try await appAttestService.generateAssertion(attestationKeyID, clientDataHash: clientDataHash)
+            return try await tidepoolService.tapi.verifyAssertion(keyID: attestationKeyID, challenge: challenge, assertion: assertion.base64EncodedString(), clientData: clientData)
+        } catch let error {
+            self.log.info("%{public}@ App assertion verification failed [error=%{public}@]", #function, String(describing: error.localizedDescription.debugDescription))
+            // Should this use one of the following networkFailure, authenticationFailure, resourceNotFound
+            throw error
+        }
     }
 }
