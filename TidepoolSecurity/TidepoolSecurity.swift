@@ -19,7 +19,9 @@ public protocol SecurePersistentAttestationKeyID {
 }
 
 public final class TidepoolSecurity: StatefulPluggable {
-    public var isOnboarded: Bool { true }
+    public var isOnboarded: Bool {
+        tidepoolService != nil
+    }
     
     public static let securityIdentifier = "TidepoolSecurity"
     
@@ -112,6 +114,7 @@ public final class TidepoolSecurity: StatefulPluggable {
         return true
         #endif
     }
+    
     public func verifyApp() async throws -> Bool {
         guard let tidepoolService = tidepoolService else {
             log.info("%{public}@ TidepoolService is missing", #function)
