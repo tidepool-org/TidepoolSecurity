@@ -60,13 +60,13 @@ public final class TidepoolSecurity: StatefulPluggable {
     public func initializationComplete(for pluggables: [Pluggable]) {
         if let tidepoolService = pluggables.first(where: { $0 as? TidepoolService != nil }) as? TidepoolService {
             self.tidepoolService = tidepoolService
-            self.tidepoolService?.isDependency(isDependency)
+            self.tidepoolService?.markAsDepedency(isDependency)
         }
     }
     
-    public func isDependency(_ isDependency: Bool) {
+    public func markAsDepedency(_ isDependency: Bool) {
         self.isDependency = isDependency
-        tidepoolService?.isDependency(isDependency)
+        tidepoolService?.markAsDepedency(isDependency)
     }
     
     public func verifyiOSDevice(completion: @escaping (Result<Bool, Error>) -> Void) {
