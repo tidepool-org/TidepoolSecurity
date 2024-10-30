@@ -19,6 +19,8 @@ public protocol SecurePersistentAttestationKeyID {
 }
 
 public final class TidepoolSecurity: StatefulPluggable {
+    private var isDependency: Bool = false
+    
     public var isOnboarded: Bool {
         tidepoolService != nil
     }
@@ -58,7 +60,13 @@ public final class TidepoolSecurity: StatefulPluggable {
     public func initializationComplete(for pluggables: [Pluggable]) {
         if let tidepoolService = pluggables.first(where: { $0 as? TidepoolService != nil }) as? TidepoolService {
             self.tidepoolService = tidepoolService
+            self.tidepoolService?.isDependency(isDependency)
         }
+    }
+    
+    public func isDependency(_ isDependency: Bool) {
+        self.isDependency = isDependency
+        tidepoolService?.isDependency(isDependency)
     }
     
     public func verifyiOSDevice(completion: @escaping (Result<Bool, Error>) -> Void) {
