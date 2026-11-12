@@ -9,28 +9,49 @@
 import UIKit
 
 struct JailbrokenDeviceDetector {
+    // Each scheme must also be listed under LSApplicationQueriesSchemes in the app's Info.plist.
+    // cydia:// is deliberately absent: an App Store app has registered it, causing false positives.
+    private static let jailbreakURLSchemes = [
+        "sileo",
+        "zbra",
+        "dopamine",
+        "palera1n",
+    ]
+
+    private static let jailbreakFilePaths = [
+        "/Applications/Cydia.app",
+        "/Applications/Sileo.app",
+        "/Applications/Zebra.app",
+        "/Library/MobileSubstrate/MobileSubstrate.dylib",
+        "/bin/bash",
+        "/usr/sbin/sshd",
+        "/etc/apt",
+        "/usr/bin/ssh",
+        "/var/jb",
+    ]
+
+    // Rootless jailbreaks link /var/jb to their bootstrap; the link can outlive its target after a reboot.
+    private static let rootlessJailbreakLink = "/var/jb"
+
     static public func isJailbrokenDevice() -> Bool {
         #if targetEnvironment(simulator)
         return false
         #else
-        if let url = URL(string: "cydia://"),
-           UIApplication.shared.canOpenURL(url)
-        {
+        let hasJailbreakApp = jailbreakURLSchemes.contains { scheme in
+            guard let url = URL(string: "\(scheme)://") else {
+                return false
+            }
+            return UIApplication.shared.canOpenURL(url)
+        }
+        if hasJailbreakApp {
             return true
         }
 
-
-        if FileManager.default.fileExists(atPath: "/Applications/Cydia.app") ||
-            FileManager.default.fileExists(atPath: "/Library/MobileSubstrate/MobileSubstrate.dylib") ||
-            FileManager.default.fileExists(atPath: "/bin/bash") ||
-            FileManager.default.fileExists(atPath: "/usr/sbin/sshd") ||
-            FileManager.default.fileExists(atPath: "/etc/apt") ||
-            FileManager.default.fileExists(atPath: "/usr/bin/ssh")
-        {
+        if jailbreakFilePaths.contains(where: { FileManager.default.fileExists(atPath: $0) }) {
             return true
         }
 
-        return false
+        return (try? FileManager.default.destinationOfSymbolicLink(atPath: rootlessJailbreakLink)) != nil
         #endif
     }
 }
